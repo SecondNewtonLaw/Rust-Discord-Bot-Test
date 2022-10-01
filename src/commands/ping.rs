@@ -1,8 +1,34 @@
-use serenity::{framework::standard::{macros::command, CommandResult}, prelude::Context, model::prelude::Message};
+use serenity::{
+    builder::CreateApplicationCommand,
+    model::prelude::interaction::{
+        application_command::ApplicationCommandInteraction, InteractionResponseType,
+    },
+    prelude::Context,
+};
 
-#[command]
-pub async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.reply(ctx, "Pong!").await?;
+/// Register the 'Ping' application commands.
+pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
+    command
+        .name("ping")
+        .description("Get the latency from the bot to the Discord Gateway!")
+}
 
-    Ok(())
+/// The logic that represents the Ping command, returns a bool that represents wether the command was successfully sent.
+pub async fn run(ctx: &Context, options: &ApplicationCommandInteraction) -> Result<bool, String> {
+
+    // Create a Runtime
+
+    match options
+        .create_interaction_response(&ctx.http, |response| {
+            response
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|msg| {
+                    msg.content("Pong!")  
+                })
+        })
+        .await
+    {
+        Ok(_) => return Ok(true),
+        Err(err) => return Err(format!("Error: {}", err)),
+    }
 }

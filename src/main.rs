@@ -1,34 +1,73 @@
-mod bot_command_handler;
 mod commands;
-mod extensions;
 
-use bot_command_handler::*;
-use serenity::{framework::StandardFramework, prelude::*};
+use serenity::async_trait;
+use serenity::model::application::interaction::{Interaction};
+use serenity::model::gateway::Ready;
+use serenity::model::id::GuildId;
+use serenity::prelude::*;
 
-#[tokio::main]
-async fn main() {
-    let framework = StandardFramework::new()
-        .configure(|c| c.prefix("!")) // set the bot's prefix to "~"
-        .group(&GENERAL_GROUP);
+struct Handler;
 
-    // Login with a bot token from the environment
-    let token = load_token();
-    let intents = GatewayIntents::non_privileged() | GatewayIntents::MESSAGE_CONTENT;
-    let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
-        .framework(framework)
-        .await
-        .expect("Error creating client");
 
-    // start listening for events by starting a single shard
-    if let Err(why) = client.start().await {
-        println!("An error occurred while running the client: {:?}", why);
+#[async_trait]
+impl EventHandler for Handler {
+    async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        if let Interaction::ApplicationCommand(command) = interaction {
+            println!("Received command interaction: {:#?}", command);
+
+            let cmd_response = match command.data.name.as_str() {
+                "ping" => commands::ping::run(&ctx, &command).await,
+                _ => {
+                    let txt = format!(
+                        "Command Failure: No Known Command logic for command with Name {}",
+                        command.data.name
+                    );
+                    Err(txt)
+                }
+            };
+
+            match cmd_response {
+                Ok(ok_status) => println!("Command Success Status: {}", ok_status),
+                Err(ex) => println!("Cannot respond to slash command: {}", ex),
+            }
+        }
+    }
+
+    async fn ready(&self, ctx: Context, ready: Ready) {
+        println!("{} is connected!", ready.user.name);
+
+        let guild_id = GuildId(std::fs::read_to_string("serverid.secret").unwrap().trim().replace("_", "").parse().unwrap());
+
+        let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
+            commands
+                .create_application_command(|command| commands::ping::register(command))
+                .create_application_command(|command| commands::help::register(command))
+        })
+        .await;
+
+        println!(
+            "I now have the following guild slash commands: {:#?}",
+            commands
+        );
     }
 }
 
-fn load_token() -> String {
-    match std::fs::read_to_string("token.secret") {
-        Ok(content) => content,
-        Err(err) => panic!("Failed operation with error \'{err}\', could not read Bot Token file, and, therefore, can not continue with the execution of the program.")
-    } // Load token filev
+#[tokio::main]
+async fn main() {
+    // Configure the client with your Discord bot token in the environment.
+    let token = std::fs::read_to_string("token.secret").unwrap();
+
+    // Build our client.
+    let mut client = Client::builder(token, GatewayIntents::empty())
+        .event_handler(Handler)
+        .await
+        .expect("Error creating client");
+
+    // Finally, start a single shard, and start listening to events.
+    //
+    // Shards will automatically attempt to reconnect, and will perform
+    // exponential backoff until it reconnects.
+    if let Err(why) = client.start().await {
+        println!("Client error: {:?}", why);
+    }
 }
