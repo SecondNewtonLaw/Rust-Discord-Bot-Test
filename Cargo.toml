@@ -17,5 +17,11 @@ serenity = { version = "0.11.5", default-features = false, features = [
     "model",
     "utils",
     "native_tls_backend",
-]}
+] }
 tokio = { version = "1.21.2", features = ["full"] }
+
+[profile.release]
+strip = true      # Strip symbols out of the binary.
+opt-level = "z"   # Optimize for size.
+lto = true        # Link Time Optimization
+codegen-units = 4 # Use 4 threads to compile everything
