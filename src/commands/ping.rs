@@ -1,5 +1,5 @@
 use serenity::{
-    builder::CreateApplicationCommand,
+    builder::{CreateApplicationCommand, CreateInteractionResponseData},
     model::prelude::interaction::{
         application_command::ApplicationCommandInteraction, InteractionResponseType,
     },
@@ -15,15 +15,12 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 
 /// The logic that represents the Ping command, returns a bool that represents wether the command was successfully sent.
 pub async fn run(ctx: &Context, options: &ApplicationCommandInteraction) -> Result<bool, String> {
-
-    // Create a Runtime
-
     match options
         .create_interaction_response(&ctx.http, |response| {
             response
                 .kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|msg| {
-                    msg.content("Pong!")  
+                .interaction_response_data(|msg: &mut CreateInteractionResponseData| {
+                    msg.content("Pong!")
                 })
         })
         .await

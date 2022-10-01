@@ -1,22 +1,22 @@
 mod commands;
 
 use serenity::async_trait;
-use serenity::model::application::interaction::{Interaction};
+use serenity::model::application::interaction::Interaction;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
 struct Handler;
 
-
 #[async_trait]
 impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(command) = interaction {
-            println!("Received command interaction: {:#?}", command);
+            println!("Received command interaction: {:?}", command);
 
             let cmd_response = match command.data.name.as_str() {
                 "ping" => commands::ping::run(&ctx, &command).await,
+                "help" => commands::help::run(&ctx, &command).await,
                 _ => {
                     let txt = format!(
                         "Command Failure: No Known Command logic for command with Name {}",
@@ -34,9 +34,16 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
+        println!("Connected as {}.", ready.user.name);
 
-        let guild_id = GuildId(std::fs::read_to_string("serverid.secret").unwrap().trim().replace("_", "").parse().unwrap());
+        let guild_id = GuildId(
+            std::fs::read_to_string("serverid.secret")
+                .unwrap()
+                .trim()
+                .replace("_", "")
+                .parse()
+                .unwrap(),
+        );
 
         let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |commands| {
             commands
@@ -63,10 +70,7 @@ async fn main() {
         .await
         .expect("Error creating client");
 
-    // Finally, start a single shard, and start listening to events.
-    //
-    // Shards will automatically attempt to reconnect, and will perform
-    // exponential backoff until it reconnects.
+    // Execute the client's code and lock until it finishes of sorts.
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
