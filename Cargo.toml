@@ -1,0 +1,23 @@
+[package]
+name = "discord_bot_test"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = "0.11.12"
+serenity = { version="0.11.5", features = [
+    "builder",
+    "cache",
+    "chrono",
+    "client",
+    "framework",
+    "gateway",
+    "http",
+    "model",
+    "standard_framework",
+    "utils",
+    "native_tls_backend",
+]}
+tokio = { version = "1.21.2", features = ["full"] }
